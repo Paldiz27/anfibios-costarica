@@ -172,17 +172,17 @@ conserva_union_riqueza <-
 
 
 ```{r}
-# Paleta de colores de riqueza de especies
+
 colores_riqueza_especies <-
   colorNumeric(
-    palette = "Reds",
-    domain = riqueza_especies_anfibios$riqueza_especies,
+    palette = "reds",
+    domain = conserva_union_riqueza$riqueza_especies,
     na.color = "transparent"
   )
 
 
 
-# Mapa leaflet
+
 leaflet() |>
   setView(
     lng = -84.19452,
@@ -192,33 +192,23 @@ leaflet() |>
   addProviderTiles(
     providers$Esri.WorldImagery, 
     group = "Imágenes satelitales (ESRI World Imagery)"
-  ) 
-
+  ) |>
 addPolygons(
     data = conserva_union_riqueza,
-    fillColor = ~ colores_riqueza_especies(riqueza_especies),
+    fillColor = "black",
     fillOpacity = 0.8,
-    color = "black",
+    colors = "black",
     stroke = TRUE,
     weight = 1.0,
     popup = paste(
-      paste("<strong>Área de conservación:</strong>", riqueza_especies_anfibios$nombre_ac),
-      paste("<strong>Riqueza de especies:</strong>", riqueza_especies_anfibios$riqueza_especies),
-      sep = '<br/>'
-    ),
-    group = "Riqueza de especies"
-  ) |>
-  addScaleBar(
-    position = "bottomleft", 
-    options = scaleBarOptions(imperial = FALSE)
-  ) |>    
+      paste("<strong>Área de conservación:</strong>", conserva_union_riqueza$nombre_ac),
+      paste("<strong>Riqueza de especies:</strong>", conserva_union_riqueza$riqueza_especies),
+      sep = '<br/>')
+    ) |>
   addLegend(
-    position = "bottomleft",
-    pal = colores_riqueza_especies,
-    values = conserva_union_riqueza$riqueza_especiess,
-    group = "Riqueza de especies",
-    title = "Riqueza de especies"
-  
+    position = "bottomright",    
+    values = riqueza_especies_anfibios$riqueza_especies,
+      
   ) |>  
   addLayersControl(
     baseGroups = c(
@@ -228,11 +218,8 @@ addPolygons(
     overlayGroups = c(
       "Riqueza de especies",
     )
-  ) |>
-  addResetMapButton() |>
-  addSearchOSM() |>
-  addMouseCoordinates() |>
-  addFullscreenControl()
+  ) 
+  
 ```
 
 
