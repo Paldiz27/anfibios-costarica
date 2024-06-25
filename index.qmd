@@ -21,6 +21,7 @@ library(readr)
 library(dplyr)
 library(plotly)
 library(ggplot2)
+library(viridis)
 ```
 
 ## Row {height=50%}
@@ -51,6 +52,7 @@ ARegistros <-
   ARegistros |>
   rename(
     Especies = species
+    
   )
 
 ```
@@ -103,19 +105,84 @@ provincias <-
   provincias |>
   st_transform(4326)
 
-Áreas_de_Conservación <-
+areas_de_Conservacion <-
   st_read("areas-conservacion.gpkg",
     quiet = TRUE)
 
-Áreas_de_Conservación <-
-  Áreas_de_Conservación |>
+areas_de_Conservacion <-
+  areas_de_Conservacion |>
   st_transform(4326)
+
+anfibios <-
+  st_read(
+    "registros-anfibios.csv",
+    options = c(
+      "X_POSSIBLE_NAMES=decimalLongitude", 
+      "Y_POSSIBLE_NAMES=decimalLatitude"   
+    ),
+    quiet = TRUE
+  )
+
+# Asignación del CRS WGS84
+st_crs(anfibios) <- 4326
+  
+
+```
+
+```{r}
+anfibios_union_conserva <-
+  st_join(
+    x = anfibios,
+    y = dplyr::select(areas_de_Conservacion, nombre_ac),
+    join = st_within
+  )
+```
+
+```{r}
+# Conteo de la cantidad de especies de félidos en cantones
+riqueza_anfibios <-
+  anfibios_union_conserva |>
+  st_drop_geometry() |>
+  group_by(nombre_ac) |>
+  summarize(riqueza_especies = n_distinct(species, na.rm = TRUE))
+
+# Despliegue de la cantidad de especies de félidos en cada cantón
+riqueza_anfibios |>
+  arrange(desc(riqueza_especies)) |>
+  datatable(
+    colnames = c("Nombre Área de Conservación", "Riqueza de especies de anfibios"),
+    options = list(
+      pageLength = 5,
+      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
+    )
+  )
+
+# Unión (no espacial) de cantones y riqueza de especies
+conserva_union_riqueza <-
+  left_join(
+    x = areas_de_Conservacion,
+    y = dplyr::select(riqueza_anfibios, nombre_ac, riqueza_especies),
+    by = "nombre_ac"
+  ) |>
+  replace_na(list(riqueza_especies = 0))
 
 ```
 
 ## Row {height=50%}
 
 ```{r}
+colores_riqueza_especies <-
+  colorNumeric(
+    palette = "Reds",
+    domain = anfibios_union_conserva$riqueza_especies,
+    na.color = "transparent"
+  )
+
+colores_especies <- colorFactor(
+  palette = viridis(length(unique(anfibios$species))), 
+  domain = anfibios$species
+)
+
 leaflet() |>
   setView(
     lng = -84.19452,
@@ -127,12 +194,18 @@ leaflet() |>
     providers$Esri.WorldImagery
   ) |>
   addPolygons(
-    data = provincias,
+    data = anfibios_union_conserva,
+    fillColor = ~ colores_riqueza_especies(anfibios_union_conserva$riqueza_especies),
+    fillOpacity = 0.8,
     color = "black",
-    fillColor = "transparent",
     stroke = TRUE,
     weight = 1.0,
-    group = "Provincias"
+    popup = paste(
+      paste("<strong>Cantón:</strong>", anfibios_union_conserva$nombre_ac),
+      paste("<strong>Riqueza de especies:</strong>", anfibios_union_conserva$riqueza_especies),
+      sep = '<br/>'
+    ),
+    group = "Riqueza de especies"
   )|>
   addLayersControl(
     baseGroups = c(
