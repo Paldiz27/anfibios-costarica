@@ -1,0 +1,73 @@
+--- 
+title: "Registros de presencia y especies de anfibios de Costa Rica"
+author: "Pablo Palacios Díaz - C35849"
+format: dashboard
+httml:
+  lang: es
+  toc: true
+
+--- 
+
+```{r}
+# Carga de paquetes
+library(tidyverse)
+library(DT)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+library(leafem)
+library(terra)
+library(readr)
+library(dplyr)
+```
+
+```{r}
+AEspecies <-
+  read_delim(
+    file = "especies-anfibios.csv"
+    )
+  
+AEspecies <-
+  AEspecies |>
+  rename(
+    Categoría = iucnRedListCategory,
+    Especies = species
+  )
+
+```
+
+```{r}
+ARegistros <- 
+   read_delim(
+    file = "registros-anfibios.csv",
+    col_select = c("species"),
+   )
+
+ARegistros <-
+  ARegistros |>
+  rename(
+    Especies = species
+  )
+
+```
+
+
+```{r}
+UnionEspecies <-
+
+  left_join(ARegistros, AEspecies,
+    by = "Especies"
+  )
+```
+
+
+```{r}
+UnionEspecies |>
+  datatable(
+    options = list(
+      pageLength = 10,
+      language = list("Spanish.json")
+    )
+  )
+```
+
