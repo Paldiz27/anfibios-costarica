@@ -1,12 +1,12 @@
---- 
+---
 title: "Registros de presencia y especies de anfibios de Costa Rica"
 author: "Pablo Palacios Díaz - C35849"
 format: dashboard
+scrolling: false 
 httml:
   lang: es
   toc: true
-
---- 
+---
 
 ```{r}
 # Carga de paquetes
@@ -19,7 +19,11 @@ library(leafem)
 library(terra)
 library(readr)
 library(dplyr)
+library(plotly)
+library(ggplot2)
 ```
+
+## Row {height=50%}
 
 ```{r}
 AEspecies <-
@@ -51,7 +55,6 @@ ARegistros <-
 
 ```
 
-
 ```{r}
 UnionEspecies <-
 
@@ -60,14 +63,92 @@ UnionEspecies <-
   )
 ```
 
-
 ```{r}
 UnionEspecies |>
   datatable(
     options = list(
       pageLength = 10,
-      language = list("Spanish.json")
+      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
     )
   )
+```
+
+```{r}
+barrasEspecies <-
+  UnionEspecies |>
+  ggplot(aes(x = fct_infreq(Categoría))) +
+  geom_bar(
+    aes(
+      text = paste0(
+        "Cantidad de Anfibios: ", after_stat(count)
+      )
+    ),
+  ) +  ggtitle("Cantidad de Anfibios por Especie") +
+  xlab("Categoría") +
+  ylab("Cantidad de Anfibios")
+
+# Gráfico de barras plotly
+ggplotly(barrasEspecies, tooltip = "text") |> 
+  config(locale = 'es')
+```
+
+```{r}
+
+provincias <-
+  st_read(
+    "provincias.geojson",
+    quiet = TRUE 
+  )
+provincias <-
+  provincias |>
+  st_transform(4326)
+
+Áreas_de_Conservación <-
+  st_read("areas-conservacion.gpkg",
+    quiet = TRUE)
+
+Áreas_de_Conservación <-
+  Áreas_de_Conservación |>
+  st_transform(4326)
+
+```
+
+## Row {height=50%}
+
+```{r}
+leaflet() |>
+  setView(
+    lng = -84.19452,
+    lat = 9.572735,
+    zoom = 7) |>
+  addTiles(group = "Mapa general (OpenStreetMap)") |>
+  addProviderTiles(
+    providers$CartoDB.Positron,
+    providers$Esri.WorldImagery
+  ) |>
+  addPolygons(
+    data = provincias,
+    color = "black",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 1.0,
+    group = "Provincias"
+  )|>
+  addLayersControl(
+    baseGroups = c(
+      "Mapa general (OpenStreetMap)", 
+      "Imágenes satelitales (ESRI World Imagery)"
+    ),
+    overlayGroups = c("Provincias", "Áreas_de_Conservación")) |> 
+  addResetMapButton() |> 
+  addSearchOSM() |> 
+  addMouseCoordinates() |> 
+  addScaleBar(
+    position = "bottomleft", 
+    options = scaleBarOptions(imperial = FALSE)
+  ) |> 
+  addMiniMap(position = "bottomright") |> 
+  addFullscreenControl() 
+  
 ```
 
