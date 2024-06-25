@@ -139,15 +139,15 @@ anfibios_union_conserva <-
 ```
 
 ```{r}
-# Conteo de la cantidad de especies de félidos en cantones
-riqueza_anfibios <-
+
+riqueza_especies_anfibios <-
   anfibios_union_conserva |>
   st_drop_geometry() |>
   group_by(nombre_ac) |>
   summarize(riqueza_especies = n_distinct(species, na.rm = TRUE))
 
-# Despliegue de la cantidad de especies de félidos en cada cantón
-riqueza_anfibios |>
+
+riqueza_especies_anfibios |>
   arrange(desc(riqueza_especies)) |>
   datatable(
     colnames = c("Nombre Área de Conservación", "Riqueza de especies de anfibios"),
@@ -161,7 +161,7 @@ riqueza_anfibios |>
 conserva_union_riqueza <-
   left_join(
     x = areas_de_Conservacion,
-    y = dplyr::select(riqueza_anfibios, nombre_ac, riqueza_especies),
+    y = dplyr::select(riqueza_especies_anfibios, nombre_ac, riqueza_especies),
     by = "nombre_ac"
   ) |>
   replace_na(list(riqueza_especies = 0))
@@ -170,19 +170,19 @@ conserva_union_riqueza <-
 
 ## Row {height=50%}
 
+
 ```{r}
+# Paleta de colores de riqueza de especies
 colores_riqueza_especies <-
   colorNumeric(
     palette = "Reds",
-    domain = anfibios_union_conserva$riqueza_especies,
+    domain = riqueza_especies_anfibios$riqueza_especies,
     na.color = "transparent"
   )
 
-colores_especies <- colorFactor(
-  palette = viridis(length(unique(anfibios$species))), 
-  domain = anfibios$species
-)
 
+
+# Mapa leaflet
 leaflet() |>
   setView(
     lng = -84.19452,
@@ -190,38 +190,49 @@ leaflet() |>
     zoom = 7) |>
   addTiles(group = "Mapa general (OpenStreetMap)") |>
   addProviderTiles(
-    providers$CartoDB.Positron,
-    providers$Esri.WorldImagery
-  ) |>
-  addPolygons(
-    data = anfibios_union_conserva,
-    fillColor = ~ colores_riqueza_especies(anfibios_union_conserva$riqueza_especies),
+    providers$Esri.WorldImagery, 
+    group = "Imágenes satelitales (ESRI World Imagery)"
+  ) 
+
+addPolygons(
+    data = conserva_union_riqueza,
+    fillColor = ~ colores_riqueza_especies(riqueza_especies),
     fillOpacity = 0.8,
     color = "black",
     stroke = TRUE,
     weight = 1.0,
     popup = paste(
-      paste("<strong>Cantón:</strong>", anfibios_union_conserva$nombre_ac),
-      paste("<strong>Riqueza de especies:</strong>", anfibios_union_conserva$riqueza_especies),
+      paste("<strong>Área de conservación:</strong>", riqueza_especies_anfibios$nombre_ac),
+      paste("<strong>Riqueza de especies:</strong>", riqueza_especies_anfibios$riqueza_especies),
       sep = '<br/>'
     ),
     group = "Riqueza de especies"
-  )|>
+  ) |>
+  addScaleBar(
+    position = "bottomleft", 
+    options = scaleBarOptions(imperial = FALSE)
+  ) |>    
+  addLegend(
+    position = "bottomleft",
+    pal = colores_riqueza_especies,
+    values = conserva_union_riqueza$riqueza_especiess,
+    group = "Riqueza de especies",
+    title = "Riqueza de especies"
+  
+  ) |>  
   addLayersControl(
     baseGroups = c(
       "Mapa general (OpenStreetMap)", 
       "Imágenes satelitales (ESRI World Imagery)"
     ),
-    overlayGroups = c("Provincias", "Áreas_de_Conservación")) |> 
-  addResetMapButton() |> 
-  addSearchOSM() |> 
-  addMouseCoordinates() |> 
-  addScaleBar(
-    position = "bottomleft", 
-    options = scaleBarOptions(imperial = FALSE)
-  ) |> 
-  addMiniMap(position = "bottomright") |> 
-  addFullscreenControl() 
-  
+    overlayGroups = c(
+      "Riqueza de especies",
+    )
+  ) |>
+  addResetMapButton() |>
+  addSearchOSM() |>
+  addMouseCoordinates() |>
+  addFullscreenControl()
 ```
+
 
