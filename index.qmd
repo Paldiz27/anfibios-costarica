@@ -2,7 +2,7 @@
 title: "Registros de presencia y especies de anfibios de Costa Rica"
 author: "Pablo Palacios Díaz - C35849"
 format: dashboard
-scrolling: false 
+scrolling: True 
 httml:
   lang: es
   toc: true
@@ -66,6 +66,8 @@ UnionEspecies <-
 ```
 
 ```{r}
+#| title: Registros de Presencia de Anfibios
+
 UnionEspecies |>
   datatable(
     options = list(
@@ -76,6 +78,7 @@ UnionEspecies |>
 ```
 
 ```{r}
+#| title: Cantidad de especies por categorías 
 barrasEspecies <-
   UnionEspecies |>
   ggplot(aes(x = fct_infreq(Categoría))) +
@@ -85,25 +88,16 @@ barrasEspecies <-
         "Cantidad de Anfibios: ", after_stat(count)
       )
     ),
-  ) +  ggtitle("Cantidad de Anfibios por Especie") +
+  ) +  
   xlab("Categoría") +
   ylab("Cantidad de Anfibios")
 
-# Gráfico de barras plotly
+
 ggplotly(barrasEspecies, tooltip = "text") |> 
   config(locale = 'es')
 ```
 
 ```{r}
-
-provincias <-
-  st_read(
-    "provincias.geojson",
-    quiet = TRUE 
-  )
-provincias <-
-  provincias |>
-  st_transform(4326)
 
 areas_de_Conservacion <-
   st_read("areas-conservacion.gpkg",
@@ -160,17 +154,19 @@ conserva_union_riqueza <-
 
 ## Row {height=50%}
 
-
 ```{r}
-
 colores_riqueza_especies <-
   colorNumeric(
     palette = "plasma",
     domain = conserva_union_riqueza$riqueza_especies,
     na.color = "transparent"
   )
+```
+ 
 
+```{r}
 
+#| title: Riqueza por Área de Conservación
 
 
 leaflet() |>
@@ -216,4 +212,33 @@ addPolygons(
   
 ```
 
+```{r}
+mean_riqueza_conserva <-
+  riqueza_especies_anfibios |>
+  group_by(nombre_ac) |>
+  summarize(riqueza_mean = mean(riqueza_especies))
+```
 
+## Row {height=70%}
+
+
+```{r}
+#| title: Riqueza de Anfibios en Áreas de Conservación
+barrasRiqueza <-
+  mean_riqueza_conserva |>
+  ggplot(aes(x = reorder(nombre_ac,-riqueza_mean), y = riqueza_mean )) +
+  geom_col(
+    aes(
+      text = paste0(
+        "Riqueza: ", round(after_stat(y),2)
+      )
+    ),
+  ) +  
+  xlab("Área de conservación") +
+  ylab("Riqueza")
+
+
+# Gráfico de barras plotly
+ggplotly(barrasRiqueza, tooltip = "text") |> 
+  config(locale = 'es')
+```
