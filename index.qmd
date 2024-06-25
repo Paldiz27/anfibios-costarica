@@ -147,17 +147,7 @@ riqueza_especies_anfibios <-
   summarize(riqueza_especies = n_distinct(species, na.rm = TRUE))
 
 
-riqueza_especies_anfibios |>
-  arrange(desc(riqueza_especies)) |>
-  datatable(
-    colnames = c("Nombre Área de Conservación", "Riqueza de especies de anfibios"),
-    options = list(
-      pageLength = 5,
-      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
-    )
-  )
 
-# Unión (no espacial) de cantones y riqueza de especies
 conserva_union_riqueza <-
   left_join(
     x = areas_de_Conservacion,
@@ -175,7 +165,7 @@ conserva_union_riqueza <-
 
 colores_riqueza_especies <-
   colorNumeric(
-    palette = "reds",
+    palette = "plasma",
     domain = conserva_union_riqueza$riqueza_especies,
     na.color = "transparent"
   )
@@ -195,9 +185,9 @@ leaflet() |>
   ) |>
 addPolygons(
     data = conserva_union_riqueza,
-    fillColor = "black",
+    fillColor = ~ colores_riqueza_especies(conserva_union_riqueza$riqueza_especies),
     fillOpacity = 0.8,
-    colors = "black",
+    color = "black",
     stroke = TRUE,
     weight = 1.0,
     popup = paste(
@@ -206,8 +196,11 @@ addPolygons(
       sep = '<br/>')
     ) |>
   addLegend(
-    position = "bottomright",    
+    position = "bottomright",
+    pal = colores_riqueza_especies,
     values = riqueza_especies_anfibios$riqueza_especies,
+    group = "Riqueza de especies",
+    title = "Riqueza de especies"
       
   ) |>  
   addLayersControl(
@@ -217,6 +210,7 @@ addPolygons(
     ),
     overlayGroups = c(
       "Riqueza de especies",
+      "Área de coservación"
     )
   ) 
   
